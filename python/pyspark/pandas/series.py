@@ -4376,10 +4376,9 @@ class Series(Frame, IndexOpsMixin, Generic[T]):
         Calculates the difference of a Series element compared with another element in the
         DataFrame (default is the element in the same column of the previous row).
 
-        .. note:: the current implementation of diff uses Spark's Window without
-            specifying partition specification. This leads to moving all data into
-            a single partition in a single machine and could cause serious
-            performance degradation. Avoid this method with very large datasets.
+        .. versionchanged:: 4.1.0
+            The implementation was optimized to use partition-local computation
+            instead of an unpartitioned Spark Window.
 
         Parameters
         ----------
@@ -4435,7 +4434,7 @@ class Series(Frame, IndexOpsMixin, Generic[T]):
         5     NaN
         Name: c, dtype: float64
         """
-        return self._diff(periods).spark.analyzed
+        return first_series(self.to_frame().diff(periods=periods)).rename(self.name)
 
     def _diff(self, periods: int, *, part_cols: Sequence["ColumnOrName"] = ()) -> "Series":
         if not isinstance(periods, int):
